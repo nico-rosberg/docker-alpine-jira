@@ -1,11 +1,11 @@
 FROM openjdk:8u121-alpine
 
-ARG JIRA_VERSION=7.7.1
+ARG JIRA_VERSION=8.20.30
 ARG JIRA_HOME=/var/atlassian/jira
 ARG JIRA_INSTALL=/opt/atlassian/jira
 ARG RUN_USER=jira
 ARG RUN_GROUP=jira
-ARG JIRA_DOWNLOAD_URI=https://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-core-${JIRA_VERSION}.tar.gz
+ARG JIRA_DOWNLOAD_URI=https://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-software-${JIRA_VERSION}.tar.gz
 ARG POSTGRES_DRIVER_VERSION=42.1.4
 ARG MYSQL_DRIVER_VERSION=5.1.45
 
@@ -54,6 +54,7 @@ RUN curl -Ls "${JIRA_DOWNLOAD_URI}" \
                                          "${JIRA_INSTALL}/logs" \
                                          "${JIRA_INSTALL}/work" \
     && sed --in-place "s/java version/openjdk version/g" "${JIRA_INSTALL}/bin/check-java.sh" \
+    && sed -i '2i JAVA_OPTS="\$JAVA_OPTS -javaagent:/opt/atlassian/jira/atlassian-agent.jar "' "${JIRA_INSTALL}/bin/catalina.sh" \
     && echo -e "\njira.home=${JIRA_HOME}" >> "${JIRA_INSTALL}/atlassian-jira/WEB-INF/classes/jira-application.properties" \
     && touch -d "@0" "${JIRA_INSTALL}/conf/server.xml"
 # Remove build dependencies
@@ -75,6 +76,7 @@ WORKDIR "${JIRA_INSTALL}"
 CMD ["./bin/catalina.sh", "run"]
 
 # Copy & set entrypoint for manual access
+COPY ./atlassian-agent.jar /opt/atlassian/jira/
 COPY ./docker-entrypoint.sh /
 COPY ./entrypoint.d/ /entrypoint.d/
 ENTRYPOINT ["/docker-entrypoint.sh"]
